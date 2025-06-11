@@ -29,31 +29,41 @@ class WindowMonitor:
     def _monitor_loop(self):
         while not self.stop_event.is_set():
             if not self.state_manager_ref or self.state_manager_ref.get_current_state() != STATE_ACTIVE_WORK:
-                # self.stop_monitoring() # Called by state_manager if state changes out of ACTIVE_WORK
                 break # Exit loop if state is no longer active work or refs are gone
 
-            new_title = self._get_active_window_title() # This might be None for "Window Monitor"
+            active_title_from_os = self._get_active_window_title() # This might be None for "Window Monitor"
             now = datetime.datetime.now()
 
-            if new_title != self.current_window_title:
-                # Log previous window if it was a valid, logged window (not None, not error string)
-                if self.current_window_title and self.current_window_title not in ["Unknown Window", "Error getting active window."] and self.data_logger_ref:
+            # If the active window is our GUI ("Window Monitor", which returns None),
+            # effectively ignore it and continue. The current_window_title and start_time remain unchanged.
+            if active_title_from_os is None:
+                time.sleep(1)
+                continue
+
+            # If we are here, active_title_from_os is not our GUI.
+            # It could be a trackable window, or "Unknown Window", "Error getting active window."
+
+            if active_title_from_os != self.current_window_title:
+                # A change has occurred (or it's the first valid window).
+                
+                # Log previous window's activity if it was a valid, trackable window.
+                if self.current_window_title and \
+                   self.current_window_title not in ["Unknown Window", "Error getting active window."] and \
+                   self.data_logger_ref and self.state_manager_ref: # Ensure refs are valid
                     self.data_logger_ref.log_window_activity(
                         self.current_window_start_time,
-                        now,
+                        now, # End time is current time
                         self.current_window_title,
-                        STATE_ACTIVE_WORK,
-                        self.state_manager_ref.get_note() # Pass current note
+                        STATE_ACTIVE_WORK, # Assuming this loop only runs for active work
+                        self.state_manager_ref.get_note()
                     )
                 
-                # If the new title is a valid window to log (not None, not error string)
-                if new_title and new_title not in ["Unknown Window", "Error getting active window."]:
-                    self.current_window_title = new_title
-                    self.current_window_start_time = now
-                else: # New title is None (Window Monitor) or an error/unknown string
-                    # Current logged window has ended (logged above). Mark current as None/error.
-                    self.current_window_title = new_title # Sets to None or error string
-                    # self.current_window_start_time is not updated, as this state isn't logged with a start time.
+                # Now, set the new window as current.
+                # If active_title_from_os is "Unknown Window" or "Error getting active window.",
+                # it will become the current_window_title. These are not logged when they *start*,
+                # only when a *trackable* window *ends*.
+                self.current_window_title = active_title_from_os
+                self.current_window_start_time = now 
             
             time.sleep(1) # Check every second
 
@@ -76,49 +86,34 @@ class WindowMonitor:
         if self.monitoring_active:
             self.monitoring_active = False
             self.stop_event.set()
-            if self.thread:
-                self.thread.join(timeout=2) # Wait for thread to finish
+            if self.thread and self.thread.is_alive(): # Check if alive before join
+                self.thread.join(timeout=2)
 
-            # Log the last active window before stopping, if it was a valid one and in active work state
-            if self.current_window_title and self.current_window_title not in ["Unknown Window", "Error getting active window."] and self.data_logger_ref and self.state_manager_ref:
+            # Log the last active window before stopping, if it was a valid one.
+            # This is the single point of logging for the final segment of a monitored window.
+            if self.current_window_title and \
+               self.current_window_start_time and \
+               self.current_window_title not in ["Unknown Window", "Error getting active window."] and \
+               self.data_logger_ref and self.state_manager_ref:
+                
+                # Check if the state manager confirms we were in STATE_ACTIVE_WORK.
+                # This ensures logging only happens if monitoring is stopped during/from an active work session.
                 if self.state_manager_ref.get_current_state() == STATE_ACTIVE_WORK:
-                    self.data_logger_ref.log_window_activity(
-                        self.current_window_start_time,
-                        datetime.datetime.now(), # Current time as end time
-                        self.current_window_title,
-                        STATE_ACTIVE_WORK,
-                        self.state_manager_ref.get_note() # Pass current note
-                    )
+                    log_end_time = datetime.datetime.now()
+                    duration = (log_end_time - self.current_window_start_time).total_seconds()
+                    
+                    if duration > 0.1: # Minimum duration to log
+                        self.data_logger_ref.log_window_activity(
+                            self.current_window_start_time,
+                            log_end_time,
+                            self.current_window_title,
+                            STATE_ACTIVE_WORK, # Logged as part of active work
+                            self.state_manager_ref.get_note()
+                        )
             
-            self.current_window_title = None # Reset for next session
-            self.current_window_start_time = None
-            # self.state_manager_ref = None # Clearing these might be problematic if stop_monitoring is called multiple times or by state_manager
-            # self.data_logger_ref = None # Let's keep them unless explicitly causing issues.
-            print("Window monitoring stopped.")
-            if self.thread and self.thread.is_alive():
-                # print("Attempting to join monitor thread...")
-                self.thread.join(timeout=2) # Wait for thread to finish
-                # if self.thread.is_alive():
-                #     print("Monitor thread did not join in time.")
-                # else:
-                #     print("Monitor thread joined.")
-            
-            # Log the final window activity before stopping
-            if self.current_window_title and self.current_window_start_time and self.data_logger_ref and self.state_manager_ref and self.state_manager_ref.get_current_state() == STATE_ACTIVE_WORK:
-                now = datetime.datetime.now()
-                if (now - self.current_window_start_time).total_seconds() > 0.1: # Min duration to log to avoid spam on rapid changes
-                    self.data_logger_ref.log_window_activity(
-                        self.current_window_start_time,
-                        now,
-                        self.current_window_title,
-                        STATE_ACTIVE_WORK
-                    )
-            # print(f"Window monitoring stopped. Last window: {self.current_window_title}")
             self.current_window_title = None
             self.current_window_start_time = None
-            # Don't nullify state_manager_ref and data_logger_ref here if they might be needed by other calls
-            # or if stop_monitoring can be called multiple times. The original code did clear them.
-            # For now, let's keep original behavior.
-            self.state_manager_ref = None 
-            self.data_logger_ref = None
+            # Per original file comments, refs are not cleared here to allow for multiple stop/start cycles.
+            # self.state_manager_ref = None 
+            # self.data_logger_ref = None
             print("Window monitoring stopped.")

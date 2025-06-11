@@ -19,14 +19,7 @@ class StateManager:
 
         if self.current_state == STATE_ACTIVE_WORK:
             self.active_work_seconds += time_in_current_state
-            if window_monitor.current_window_title:
-                 data_logger.log_window_activity(
-                    window_monitor.current_window_start_time,
-                    now,
-                    window_monitor.current_window_title,
-                    self.current_state,
-                    self.current_note
-                )
+            # The window_monitor.stop_monitoring() call below will handle logging the last activity.
             window_monitor.stop_monitoring() # Stop window monitor if not in active work
         elif self.current_state == STATE_PACING:
             self.pacing_seconds += time_in_current_state

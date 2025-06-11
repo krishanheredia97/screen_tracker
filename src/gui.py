@@ -137,16 +137,8 @@ class SimpleGUI(tk.Tk):
     def _on_close(self):
         print("Closing application...")
         # Ensure current activity is logged before closing
-        if self.state_manager.get_current_state() == STATE_ACTIVE_WORK:
-            if self.window_monitor.current_window_title and self.window_monitor.current_window_start_time:
-                self.data_logger.log_window_activity(
-                    self.window_monitor.current_window_start_time,
-                    datetime.datetime.now(),
-                    self.window_monitor.current_window_title,
-                    STATE_ACTIVE_WORK,
-                    self.state_manager.get_note()
-                )
-        elif self.state_manager.get_current_state() == STATE_PACING:
+        # For STATE_ACTIVE_WORK, self.window_monitor.stop_monitoring() (called later) will handle logging.
+        if self.state_manager.get_current_state() == STATE_PACING:
              self.data_logger.log_window_activity(
                 self.state_manager.last_state_change_time,
                 datetime.datetime.now(),
