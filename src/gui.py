@@ -12,13 +12,14 @@ class SimpleGUI(tk.Tk):
         self.window_monitor = window_monitor
 
         self.title("Window Monitor")
-        self.geometry("350x200") # Increased height for better layout
+        self.geometry("350x300") # Increased height for note field
         self.resizable(False, False)
         # self.attributes("-topmost", True) # Optional: always on top
 
         self.current_state_var = tk.StringVar(value=self.state_manager.get_current_state())
         self.active_work_time_var = tk.StringVar(value="00:00:00")
         self.pacing_time_var = tk.StringVar(value="00:00:00")
+        # Note: self.note_text_widget will be created in _setup_ui
 
         self._setup_ui()
         self.update_gui() # Initial call to start the GUI update loop
@@ -52,10 +53,23 @@ class SimpleGUI(tk.Tk):
         ttk.Label(main_frame, text="Pacing Time:").grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(5,0))
         ttk.Label(main_frame, textvariable=self.pacing_time_var).grid(row=3, column=2, sticky=tk.E, pady=(5,0))
         
+        # Note Input
+        ttk.Label(main_frame, text="Note:").grid(row=4, column=0, sticky=tk.W, pady=(10,0))
+        self.note_text_widget = tk.Text(main_frame, height=3, width=30)
+        self.note_text_widget.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0,5))
+        self.note_text_widget.insert(tk.END, self.state_manager.get_note()) # Load initial note
+
+        # Note Buttons
+        self.save_note_button = ttk.Button(main_frame, text="Save Note", command=self._save_note)
+        self.save_note_button.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=2, pady=2)
+
+        self.clear_note_button = ttk.Button(main_frame, text="Clear Note", command=self._clear_note)
+        self.clear_note_button.grid(row=6, column=2, sticky=(tk.W, tk.E), padx=2, pady=2)
+
         # Status Bar (Optional - for messages)
         self.status_var = tk.StringVar(value="Started in Inactive state.")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10,0))
+        status_bar.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10,0))
 
         for child in main_frame.winfo_children(): 
             child.grid_configure(padx=5, pady=3)
@@ -105,6 +119,19 @@ class SimpleGUI(tk.Tk):
         self.pacing_time_var.set(self._format_time(pacing_s))
         self.current_state_var.set(self.state_manager.get_current_state()) # Ensure state var is current
         self._update_button_styles()
+
+        # Only update the note widget if it doesn't have focus (user isn't typing in it)
+        # This prevents the text from being reset while the user is typing
+        if not self.note_text_widget.focus_get() == self.note_text_widget:
+            # Get the current note from the state manager
+            state_manager_note = self.state_manager.get_note()
+            # Get the current text from the widget, strip newlines and whitespace
+            current_gui_note = self.note_text_widget.get("1.0", tk.END).strip()
+            # Only update if they're different and the widget doesn't have focus
+            if current_gui_note != state_manager_note:
+                self.note_text_widget.delete("1.0", tk.END)
+                self.note_text_widget.insert(tk.END, state_manager_note)
+
         self.after(1000, self.update_gui) # Update every second
 
     def _on_close(self):
@@ -116,16 +143,28 @@ class SimpleGUI(tk.Tk):
                     self.window_monitor.current_window_start_time,
                     datetime.datetime.now(),
                     self.window_monitor.current_window_title,
-                    STATE_ACTIVE_WORK
+                    STATE_ACTIVE_WORK,
+                    self.state_manager.get_note()
                 )
         elif self.state_manager.get_current_state() == STATE_PACING:
              self.data_logger.log_window_activity(
                 self.state_manager.last_state_change_time,
                 datetime.datetime.now(),
                 "N/A",
-                STATE_PACING
+                STATE_PACING,
+                self.state_manager.get_note()
             )
         
         if self.window_monitor.monitoring_active:
             self.window_monitor.stop_monitoring() # Ensure monitor thread is stopped
         self.destroy()
+
+    def _save_note(self):
+        note_content = self.note_text_widget.get("1.0", tk.END).strip()
+        self.state_manager.set_note(note_content)
+        self.status_var.set(f"Note saved.")
+
+    def _clear_note(self):
+        self.note_text_widget.delete("1.0", tk.END)
+        self.state_manager.set_note("")
+        self.status_var.set("Note cleared.")

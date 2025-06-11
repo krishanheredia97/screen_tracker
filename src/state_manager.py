@@ -8,6 +8,7 @@ class StateManager:
         self.active_work_seconds = 0
         self.pacing_seconds = 0
         self.last_state_change_time = datetime.datetime.now()
+        self.current_note = ""
 
     def set_state(self, new_state, data_logger, window_monitor):
         if self.current_state == new_state:
@@ -23,7 +24,8 @@ class StateManager:
                     window_monitor.current_window_start_time,
                     now,
                     window_monitor.current_window_title,
-                    self.current_state
+                    self.current_state,
+                    self.current_note
                 )
             window_monitor.stop_monitoring() # Stop window monitor if not in active work
         elif self.current_state == STATE_PACING:
@@ -33,7 +35,8 @@ class StateManager:
                 self.last_state_change_time, 
                 now, 
                 "N/A", 
-                self.current_state
+                self.current_state,
+                self.current_note
             )
 
         self.current_state = new_state
@@ -59,3 +62,10 @@ class StateManager:
 
     def get_current_state(self):
         return self.current_state
+
+    def set_note(self, note_text):
+        self.current_note = note_text
+        print(f"Note updated to: {self.current_note}")
+
+    def get_note(self):
+        return self.current_note
