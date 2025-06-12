@@ -11,6 +11,19 @@ class SimpleGUI(tk.Tk):
         self.data_logger = data_logger
         self.window_monitor = window_monitor
 
+        self.style = ttk.Style()
+        # Define styles for TFrame based on color names
+        self.style.configure("Green.TFrame", background="#90EE90")  # LightGreen
+        self.style.configure("Yellow.TFrame", background="#FFFFE0") # LightYellow
+        self.style.configure("Gray.TFrame", background="#D3D3D3")   # LightGray
+        
+        # Store colors for direct use (e.g., for tk.Tk root window or tk.Text)
+        self.BG_COLORS = {
+            "Green": "#90EE90",
+            "Yellow": "#FFFFE0",
+            "Gray": "#D3D3D3"
+        }
+
         self.title("Window Monitor")
         self.geometry("600x400") # Increased width and height for better text display
         self.resizable(True, True)
@@ -27,41 +40,41 @@ class SimpleGUI(tk.Tk):
 
     def _setup_ui(self):
         # Create a main container frame
-        container_frame = ttk.Frame(self, padding="10")
-        container_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.container_frame = ttk.Frame(self, padding="10")
+        self.container_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         
         # Create left and right frames
-        left_frame = ttk.Frame(container_frame, width=400)
-        left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        left_frame.grid_propagate(False)  # Prevent frame from shrinking to fit contents
+        self.left_frame = ttk.Frame(self.container_frame, width=400)
+        self.left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.left_frame.grid_propagate(False)  # Prevent frame from shrinking to fit contents
         
-        right_frame = ttk.Frame(container_frame, width=150)
-        right_frame.grid(row=0, column=1, sticky=(tk.N, tk.S), padx=(10, 0))
+        self.right_frame = ttk.Frame(self.container_frame, width=150)
+        self.right_frame.grid(row=0, column=1, sticky=(tk.N, tk.S), padx=(10, 0))
         
         # Configure weights
-        container_frame.columnconfigure(0, weight=3)  # Left frame takes more space
-        container_frame.columnconfigure(1, weight=1)  # Right frame takes less space
-        container_frame.rowconfigure(0, weight=1)
+        self.container_frame.columnconfigure(0, weight=3)  # Left frame takes more space
+        self.container_frame.columnconfigure(1, weight=1)  # Right frame takes less space
+        self.container_frame.rowconfigure(0, weight=1)
         
         # Configure left frame column weights
-        left_frame.columnconfigure(0, weight=1)
-        left_frame.columnconfigure(1, weight=2)
+        self.left_frame.columnconfigure(0, weight=1)
+        self.left_frame.columnconfigure(1, weight=2)
         
         # Left Frame Contents
         # State Label
-        ttk.Label(left_frame, text="Current State:").grid(row=0, column=0, sticky=tk.W, pady=(0,5), padx=(0,10))
-        self.state_label = ttk.Label(left_frame, textvariable=self.current_state_var, font=font.Font(weight='bold'))
+        ttk.Label(self.left_frame, text="Current State:").grid(row=0, column=0, sticky=tk.W, pady=(0,5), padx=(0,10))
+        self.state_label = ttk.Label(self.left_frame, textvariable=self.current_state_var, font=font.Font(weight='bold'))
         self.state_label.grid(row=0, column=1, sticky=tk.W, pady=(0,5))
         
         # Current Tag Label
-        ttk.Label(left_frame, text="Current Tag:").grid(row=1, column=0, sticky=tk.W, pady=(0,5), padx=(0,10))
-        self.tag_label = ttk.Label(left_frame, textvariable=self.current_tag_var, font=font.Font(weight='bold'))
+        ttk.Label(self.left_frame, text="Current Tag:").grid(row=1, column=0, sticky=tk.W, pady=(0,5), padx=(0,10))
+        self.tag_label = ttk.Label(self.left_frame, textvariable=self.current_tag_var, font=font.Font(weight='bold'))
         self.tag_label.grid(row=1, column=1, sticky=tk.W, pady=(0,5))
 
         # State Toggle (Tracking/Inactive)
-        toggle_frame = ttk.Frame(left_frame)
+        toggle_frame = ttk.Frame(self.left_frame)
         toggle_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
         toggle_frame.columnconfigure(0, weight=1)
         toggle_frame.columnconfigure(1, weight=1)
@@ -75,17 +88,17 @@ class SimpleGUI(tk.Tk):
         self.inactive_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2)
 
         # Timer
-        ttk.Label(left_frame, text="Tracking Time:").grid(row=3, column=0, sticky=tk.W, pady=(5,0), padx=(0,10))
-        ttk.Label(left_frame, textvariable=self.active_work_time_var).grid(row=3, column=1, sticky=tk.W, pady=(5,0))
+        ttk.Label(self.left_frame, text="Tracking Time:").grid(row=3, column=0, sticky=tk.W, pady=(5,0), padx=(0,10))
+        ttk.Label(self.left_frame, textvariable=self.active_work_time_var).grid(row=3, column=1, sticky=tk.W, pady=(5,0))
         
         # Note Input
-        ttk.Label(left_frame, text="Note:").grid(row=4, column=0, sticky=tk.W, pady=(10,0))
-        self.note_text_widget = tk.Text(left_frame, height=3, width=30)
+        ttk.Label(self.left_frame, text="Note:").grid(row=4, column=0, sticky=tk.W, pady=(10,0))
+        self.note_text_widget = tk.Text(self.left_frame, height=3, width=30)
         self.note_text_widget.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0,5))
         self.note_text_widget.insert(tk.END, self.state_manager.get_note()) # Load initial note
 
         # Note Buttons
-        note_buttons_frame = ttk.Frame(left_frame)
+        note_buttons_frame = ttk.Frame(self.left_frame)
         note_buttons_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=2)
         note_buttons_frame.columnconfigure(0, weight=1)
         note_buttons_frame.columnconfigure(1, weight=1)
@@ -98,14 +111,14 @@ class SimpleGUI(tk.Tk):
 
         # Status Bar
         self.status_var = tk.StringVar(value="Started in Inactive state.")
-        status_bar = ttk.Label(left_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        status_bar = ttk.Label(self.left_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
         status_bar.grid(row=7, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10,0))
 
         # Right Frame Contents (Tags)
-        ttk.Label(right_frame, text="Tags", font=font.Font(weight='bold')).pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(self.right_frame, text="Tags", font=font.Font(weight='bold')).pack(anchor=tk.W, pady=(0, 5))
         
         # Create a canvas with scrollbar for tags
-        tag_canvas_frame = ttk.Frame(right_frame)
+        tag_canvas_frame = ttk.Frame(self.right_frame)
         tag_canvas_frame.pack(fill=tk.BOTH, expand=True)
         
         # Add scrollbar to the frame
@@ -134,12 +147,14 @@ class SimpleGUI(tk.Tk):
         self.tags_frame.bind("<Configure>", self._on_frame_configure)
         self.tag_canvas.bind("<Configure>", self._on_canvas_configure)
         
-        # Apply padding to all children in left_frame (which uses grid)
-        for child in left_frame.winfo_children(): 
+        # Apply padding to all children in self.left_frame (which uses grid)
+        for child in self.left_frame.winfo_children(): 
             if isinstance(child, ttk.Frame) or isinstance(child, tk.Frame):
                 continue
             if hasattr(child, 'grid_configure'):
                 child.grid_configure(padx=5, pady=3)
+        
+        self._update_background_color() # Initial background color set
 
     def _format_time(self, seconds):
         secs = int(seconds % 60)
@@ -153,6 +168,7 @@ class SimpleGUI(tk.Tk):
         self.current_state_var.set(self.state_manager.get_current_state())
         self.status_var.set(f"State changed to {new_state}.")
         self._update_button_styles()
+        self._update_background_color() # Added call
 
     def _update_button_styles(self):
         current_state = self.state_manager.get_current_state()
@@ -199,6 +215,7 @@ class SimpleGUI(tk.Tk):
         self.current_tag_var.set(current_tag if current_tag else "No Tag Selected")
         
         self._update_button_styles()
+        self._update_background_color() # Added call
 
         # Only update the note widget if it doesn't have focus (user isn't typing in it)
         # This prevents the text from being reset while the user is typing
@@ -239,6 +256,7 @@ class SimpleGUI(tk.Tk):
         self.current_tag_var.set(tag)
         self.status_var.set(f"Tag set to: {tag}")
         self._update_button_styles()
+        self._update_background_color() # Added call
         
     def _on_frame_configure(self, event):
         """Update the scroll region to encompass the inner frame"""
@@ -248,3 +266,39 @@ class SimpleGUI(tk.Tk):
         """When the canvas changes size, resize the frame within it"""
         # Update the width of the frame to fit the canvas
         self.tag_canvas.itemconfig(self.tags_frame_window, width=event.width)
+
+    def _update_background_color(self):
+        current_state = self.state_manager.get_current_state()
+        current_tag = self.state_manager.get_current_tag()
+
+        target_color_name = "Gray"  # Default to gray
+
+        if current_state == STATE_TRACKING:
+            target_color_name = "Green"
+        elif current_tag == "Pacing":  # Evaluated if not Tracking
+            target_color_name = "Yellow"
+        elif current_state == STATE_INACTIVE:  # Evaluated if not Tracking and not Pacing tag
+            target_color_name = "Gray"
+        # Else, it remains "Gray" as initialized or due to previous conditions
+
+        frame_style_name = f"{target_color_name}.TFrame"
+        root_bg_color = self.BG_COLORS.get(target_color_name, self.BG_COLORS["Gray"])
+
+        self.configure(background=root_bg_color)
+        
+        # Configure frames if they exist
+        if hasattr(self, 'container_frame') and self.container_frame:
+            self.container_frame.configure(style=frame_style_name)
+        if hasattr(self, 'left_frame') and self.left_frame:
+            self.left_frame.configure(style=frame_style_name)
+        if hasattr(self, 'right_frame') and self.right_frame:
+            self.right_frame.configure(style=frame_style_name)
+        
+        # Configure specific tk widgets that need explicit background setting
+        if hasattr(self, 'note_text_widget') and self.note_text_widget:
+            self.note_text_widget.configure(background=root_bg_color)
+        
+        if hasattr(self, 'tag_canvas') and self.tag_canvas:  # This is a tk.Canvas
+            self.tag_canvas.configure(background=root_bg_color)
+        if hasattr(self, 'tags_frame') and self.tags_frame:  # This is a ttk.Frame
+            self.tags_frame.configure(style=frame_style_name)
