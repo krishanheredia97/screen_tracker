@@ -2,7 +2,7 @@ import datetime
 import threading
 import time
 import pygetwindow as gw
-from .constants import STATE_ACTIVE_WORK
+from .constants import STATE_TRACKING
 
 class WindowMonitor:
     def __init__(self):
@@ -28,7 +28,7 @@ class WindowMonitor:
 
     def _monitor_loop(self):
         while not self.stop_event.is_set():
-            if not self.state_manager_ref or self.state_manager_ref.get_current_state() != STATE_ACTIVE_WORK:
+            if not self.state_manager_ref or self.state_manager_ref.get_current_state() != STATE_TRACKING:
                 break # Exit loop if state is no longer active work or refs are gone
 
             active_title_from_os = self._get_active_window_title() # This might be None for "Window Monitor"
@@ -54,7 +54,7 @@ class WindowMonitor:
                         self.current_window_start_time,
                         now, # End time is current time
                         self.current_window_title,
-                        STATE_ACTIVE_WORK, # Assuming this loop only runs for active work
+                        self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
                         self.state_manager_ref.get_note()
                     )
                 
@@ -98,7 +98,7 @@ class WindowMonitor:
                 
                 # Check if the state manager confirms we were in STATE_ACTIVE_WORK.
                 # This ensures logging only happens if monitoring is stopped during/from an active work session.
-                if self.state_manager_ref.get_current_state() == STATE_ACTIVE_WORK:
+                if self.state_manager_ref.get_current_state() == STATE_TRACKING:
                     log_end_time = datetime.datetime.now()
                     duration = (log_end_time - self.current_window_start_time).total_seconds()
                     
@@ -107,7 +107,7 @@ class WindowMonitor:
                             self.current_window_start_time,
                             log_end_time,
                             self.current_window_title,
-                            STATE_ACTIVE_WORK, # Logged as part of active work
+                            self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
                             self.state_manager_ref.get_note()
                         )
             
