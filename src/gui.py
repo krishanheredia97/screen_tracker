@@ -271,15 +271,16 @@ class SimpleGUI(tk.Tk):
         current_state = self.state_manager.get_current_state()
         current_tag = self.state_manager.get_current_tag()
 
-        target_color_name = "Gray"  # Default to gray
+        target_color_name = "Gray"  # Default color
 
-        if current_state == STATE_TRACKING:
+        if current_tag == "Pacing":
+            if current_state == STATE_TRACKING:
+                target_color_name = "Yellow"  # Pacing + Tracking = Yellow
+            # else: Pacing + Inactive (or other state) = Gray (this is the default)
+        elif current_state == STATE_TRACKING: # Not Pacing tag, but Tracking
             target_color_name = "Green"
-        elif current_tag == "Pacing":  # Evaluated if not Tracking
-            target_color_name = "Yellow"
-        elif current_state == STATE_INACTIVE:  # Evaluated if not Tracking and not Pacing tag
-            target_color_name = "Gray"
-        # Else, it remains "Gray" as initialized or due to previous conditions
+        # else: Not Pacing tag, and Not Tracking (e.g., Inactive or other state) = Gray (this is the default)
+        # Note: If current_state is STATE_INACTIVE and not Pacing, it will correctly be Gray.
 
         frame_style_name = f"{target_color_name}.TFrame"
         root_bg_color = self.BG_COLORS.get(target_color_name, self.BG_COLORS["Gray"])
