@@ -96,6 +96,7 @@ class SimpleGUI(tk.Tk):
         self.note_text_widget = tk.Text(self.left_frame, height=3, width=30)
         self.note_text_widget.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0,5))
         self.note_text_widget.insert(tk.END, self.state_manager.get_note()) # Load initial note
+        self.note_text_widget.bind("<Control-BackSpace>", self._on_ctrl_backspace)
 
         # Note Buttons
         note_buttons_frame = ttk.Frame(self.left_frame)
@@ -155,6 +156,34 @@ class SimpleGUI(tk.Tk):
                 child.grid_configure(padx=5, pady=3)
         
         self._update_background_color() # Initial background color set
+
+    def _on_ctrl_backspace(self, event):
+        widget = event.widget
+        # Get the current cursor position
+        insert_index = widget.index(tk.INSERT)
+
+        # Find the start of the word to the left of the cursor
+        # We search backwards from the insert position for a space
+        line_start = widget.index(f"{insert_index} linestart")
+        search_end = widget.index(f"{insert_index} - 1c")
+
+        # If we are at the start of the line, do nothing
+        if insert_index == line_start:
+            return "break"
+
+        # Search for a space before the cursor
+        prev_space_pos = widget.search(r'\s', search_end, backwards=True, regexp=True, stopindex=line_start)
+
+        if prev_space_pos:
+            # If a space is found, delete from there to the cursor
+            delete_from = widget.index(f"{prev_space_pos} + 1c")
+        else:
+            # If no space is found, delete from the start of the line
+            delete_from = line_start
+
+        widget.delete(delete_from, insert_index)
+        
+        return "break" # Prevents the default backspace behavior
 
     def _format_time(self, seconds):
         secs = int(seconds % 60)
