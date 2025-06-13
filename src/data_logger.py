@@ -16,7 +16,7 @@ class DataLogger:
         if not os.path.exists(self.log_file):
             with open(self.log_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(["datetime_start", "datetime_end", "duration_seconds", "window_title", "tag", "note"]) # Changed 'user_state' to 'tag'
+                writer.writerow(["datetime_start", "datetime_end", "duration_seconds", "window_title", "tag", "note", "work_status", "break_reason"])
 
     def _load_unique_windows(self):
         titles = set()
@@ -26,7 +26,7 @@ class DataLogger:
                     titles.add(line.strip())
         return titles
 
-    def log_window_activity(self, start_time, end_time, window_title, tag, note_text=""):
+    def log_window_activity(self, start_time, end_time, window_title, tag, note_text="", work_status=None, break_reason=None):
         with self.lock:
             duration = (end_time - start_time).total_seconds()
             if duration < 0: duration = 0 # Should not happen, but as a safeguard
@@ -35,9 +35,12 @@ class DataLogger:
             end_str = end_time.strftime(DATETIME_FORMAT)
             
             print(f"Logging: {start_str}, {end_str}, {duration:.0f}, {window_title}, Tag: {tag}, Note: {note_text}")
+            if work_status:
+                print(f"Work status: {work_status}, Break reason: {break_reason if break_reason else 'N/A'}")
+                
             with open(self.log_file, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow([start_str, end_str, f"{duration:.0f}", window_title, tag, note_text])
+                writer.writerow([start_str, end_str, f"{duration:.0f}", window_title, tag, note_text, work_status or "", break_reason or ""])
                 f.flush()
             
             if tag and window_title and window_title != "Unknown Window" and window_title != "Error getting active window." and window_title not in self.unique_window_titles:

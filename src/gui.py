@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, font, simpledialog, messagebox
 import datetime
 from .constants import STATE_INACTIVE, STATE_TRACKING, TAG_PACING
+from .dialogs import WorkStatusDialog
 # StateManager, DataLogger, WindowMonitor will be passed as arguments, no direct import needed here.
 
 class SimpleGUI(tk.Tk):
@@ -215,13 +216,38 @@ class SimpleGUI(tk.Tk):
                 self.status_var.set("Cannot start tracking: No note entered.")
                 return
         
+        # If changing to inactive state, ask for work status
+        work_status = None
+        break_reason = None
+        if new_state == STATE_INACTIVE and self.state_manager.get_current_state() == STATE_TRACKING:
+            # Show work status dialog
+            dialog = WorkStatusDialog(self)
+            work_status = dialog.result
+            break_reason = dialog.break_reason
+            
+            # If user canceled the dialog, don't change state
+            if work_status is None:
+                return
+            
+            # Store work status and break reason
+            self.state_manager.set_work_status(work_status, break_reason)
+        
         # Try to change the state
         result = self.state_manager.set_state(new_state, self.data_logger, self.window_monitor)
         
         # Only update UI if state change was successful
         if result is not False:  # None or True is success
             self.current_state_var.set(self.state_manager.get_current_state())
-            self.status_var.set(f"State changed to {new_state}.")
+            
+            # Update status message based on work status
+            if new_state == STATE_INACTIVE and work_status:
+                if work_status == "finished":
+                    self.status_var.set("Work finished for the day.")
+                elif work_status == "break":
+                    self.status_var.set(f"Taking a break: {break_reason}")
+            else:
+                self.status_var.set(f"State changed to {new_state}.")
+                
             self._update_button_styles()
             self._update_background_color()
 

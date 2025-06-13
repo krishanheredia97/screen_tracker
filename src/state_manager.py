@@ -11,6 +11,9 @@ class StateManager:
         self.current_tag = None
         # Initialize with default tags
         self.tags = DEFAULT_TAGS.copy()
+        # Work status and break reason
+        self.work_status = None  # 'finished' or 'break'
+        self.break_reason = None
 
     def set_state(self, new_state, data_logger, window_monitor):
         # If trying to set the same state, do nothing
@@ -100,3 +103,19 @@ class StateManager:
 
     def get_note(self):
         return self.current_note
+        
+    def set_work_status(self, status, reason=None):
+        """Set the work status and break reason"""
+        self.work_status = status
+        self.break_reason = reason
+        print(f"Work status set to: {status}")
+        if reason:
+            print(f"Break reason: {reason}")
+            
+    def get_work_status(self):
+        """Get the current work status"""
+        return self.work_status
+        
+    def get_break_reason(self):
+        """Get the current break reason"""
+        return self.break_reason

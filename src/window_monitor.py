@@ -55,7 +55,9 @@ class WindowMonitor:
                         now, # End time is current time
                         self.current_window_title,
                         self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
-                        self.state_manager_ref.get_note()
+                        self.state_manager_ref.get_note(),
+                        self.state_manager_ref.get_work_status(),
+                        self.state_manager_ref.get_break_reason()
                     )
                 
                 # Now, set the new window as current.
@@ -108,7 +110,9 @@ class WindowMonitor:
                             log_end_time,
                             self.current_window_title,
                             self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
-                            self.state_manager_ref.get_note()
+                            self.state_manager_ref.get_note(),
+                            self.state_manager_ref.get_work_status(),
+                            self.state_manager_ref.get_break_reason()
                         )
             
             self.current_window_title = None
