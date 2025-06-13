@@ -1,5 +1,5 @@
 import datetime
-from .constants import STATE_INACTIVE, STATE_TRACKING, ALL_TAGS
+from .constants import STATE_INACTIVE, STATE_TRACKING, DEFAULT_TAGS, TAG_PACING
 
 class StateManager:
     def __init__(self):
@@ -9,6 +9,8 @@ class StateManager:
         self.last_state_change_time = datetime.datetime.now()
         self.current_note = ""
         self.current_tag = None
+        # Initialize with default tags
+        self.tags = DEFAULT_TAGS.copy()
 
     def set_state(self, new_state, data_logger, window_monitor):
         if self.current_state == new_state:
@@ -44,11 +46,38 @@ class StateManager:
         return self.current_state
         
     def set_tag(self, tag):
-        if tag in ALL_TAGS or tag is None:
+        if tag in self.tags or tag is None:
             self.current_tag = tag
             print(f"Tag set to: {self.current_tag}")
         else:
             print(f"Invalid tag: {tag}")
+            
+    def add_tag(self, tag):
+        """Add a new tag to the list of available tags"""
+        if tag and tag not in self.tags:
+            self.tags.append(tag)
+            print(f"Added new tag: {tag}")
+            return True
+        return False
+        
+    def remove_tag(self, tag):
+        """Remove a tag from the list of available tags"""
+        if tag == TAG_PACING:
+            print(f"Cannot remove the {TAG_PACING} tag as it is required")
+            return False
+        
+        if tag in self.tags:
+            self.tags.remove(tag)
+            # If the current tag is being removed, reset it
+            if self.current_tag == tag:
+                self.current_tag = None
+            print(f"Removed tag: {tag}")
+            return True
+        return False
+        
+    def get_tags(self):
+        """Get the list of all available tags"""
+        return self.tags.copy()
             
     def get_current_tag(self):
         return self.current_tag

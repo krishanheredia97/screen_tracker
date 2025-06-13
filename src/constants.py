@@ -8,10 +8,7 @@ STATE_INACTIVE = "Inactive"
 STATE_TRACKING = "Tracking"
 
 # --- Tags ---
-TAG_PACING = "Pacing"
-TAG_LEARNING_WORK = "Learning (work)"
-TAG_LEARNING_FUN = "Learning (fun)"
-TAG_WORK = "Work"
+TAG_PACING = "Pacing"  # This is a special tag that must always be available
 
-# List of all available tags
-ALL_TAGS = [TAG_PACING, TAG_LEARNING_WORK, TAG_LEARNING_FUN, TAG_WORK]
+# Default tags - these can be modified by the user
+DEFAULT_TAGS = [TAG_PACING, "Learning (work)", "Learning (fun)", "Work"]

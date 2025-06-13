@@ -1,7 +1,7 @@
 import tkinter as tk
-from tkinter import ttk, font
+from tkinter import ttk, font, simpledialog, messagebox
 import datetime
-from .constants import STATE_INACTIVE, STATE_TRACKING, ALL_TAGS
+from .constants import STATE_INACTIVE, STATE_TRACKING, TAG_PACING
 # StateManager, DataLogger, WindowMonitor will be passed as arguments, no direct import needed here.
 
 class SimpleGUI(tk.Tk):
@@ -116,7 +116,16 @@ class SimpleGUI(tk.Tk):
         status_bar.grid(row=7, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10,0))
 
         # Right Frame Contents (Tags)
-        ttk.Label(self.right_frame, text="Tags", font=font.Font(weight='bold')).pack(anchor=tk.W, pady=(0, 5))
+        # Create a frame for the Tags header and + button
+        tags_header_frame = ttk.Frame(self.right_frame)
+        tags_header_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        # Add Tags label
+        ttk.Label(tags_header_frame, text="Tags", font=font.Font(weight='bold')).pack(side=tk.LEFT, anchor=tk.W)
+        
+        # Add + button for adding new tags
+        add_tag_button = ttk.Button(tags_header_frame, text="+", width=3, command=self._add_new_tag)
+        add_tag_button.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Create a canvas with scrollbar for tags
         tag_canvas_frame = ttk.Frame(self.right_frame)
@@ -137,12 +146,9 @@ class SimpleGUI(tk.Tk):
         self.tags_frame = ttk.Frame(self.tag_canvas)
         self.tags_frame_window = self.tag_canvas.create_window((0, 0), window=self.tags_frame, anchor=tk.NW)
         
-        # Add tags as buttons
+        # Add tags as buttons with delete options
         self.tag_buttons = {}
-        for i, tag in enumerate(ALL_TAGS):
-            btn = ttk.Button(self.tags_frame, text=tag, command=lambda t=tag: self._select_tag(t))
-            btn.pack(fill=tk.X, padx=2, pady=2)
-            self.tag_buttons[tag] = btn
+        self._refresh_tag_buttons()
             
         # Update canvas scroll region when tags frame changes size
         self.tags_frame.bind("<Configure>", self._on_frame_configure)
@@ -286,6 +292,57 @@ class SimpleGUI(tk.Tk):
         self.status_var.set(f"Tag set to: {tag}")
         self._update_button_styles()
         self._update_background_color() # Added call
+        
+    def _add_new_tag(self):
+        """Open a dialog to add a new tag"""
+        new_tag = simpledialog.askstring("Add New Tag", "Enter new tag name:")
+        if new_tag and new_tag.strip():
+            new_tag = new_tag.strip()
+            if self.state_manager.add_tag(new_tag):
+                self._refresh_tag_buttons()
+                self.status_var.set(f"Added new tag: {new_tag}")
+            else:
+                self.status_var.set(f"Tag '{new_tag}' already exists")
+                
+    def _delete_tag(self, tag):
+        """Delete a tag after confirmation"""
+        if tag == TAG_PACING:
+            messagebox.showinfo("Cannot Delete", f"The '{TAG_PACING}' tag cannot be deleted as it is required.")
+            return
+            
+        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete the tag '{tag}'?")
+        if confirm:
+            if self.state_manager.remove_tag(tag):
+                self._refresh_tag_buttons()
+                self.status_var.set(f"Deleted tag: {tag}")
+                
+    def _refresh_tag_buttons(self):
+        """Refresh the tag buttons based on current tags in state manager"""
+        # Clear existing buttons
+        for widget in self.tags_frame.winfo_children():
+            widget.destroy()
+        
+        # Clear button references
+        self.tag_buttons = {}
+        
+        # Add buttons for each tag
+        for tag in self.state_manager.get_tags():
+            # Create a frame for each tag to hold the button and delete button
+            tag_frame = ttk.Frame(self.tags_frame)
+            tag_frame.pack(fill=tk.X, padx=2, pady=2)
+            
+            # Add the tag button
+            btn = ttk.Button(tag_frame, text=tag, command=lambda t=tag: self._select_tag(t))
+            btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            self.tag_buttons[tag] = btn
+            
+            # Add delete button
+            delete_btn = ttk.Button(tag_frame, text="×", width=2, 
+                                  command=lambda t=tag: self._delete_tag(t))
+            delete_btn.pack(side=tk.RIGHT, padx=(2, 0))
+        
+        # Update the canvas scroll region
+        self._on_frame_configure(None)
         
     def _on_frame_configure(self, event):
         """Update the scroll region to encompass the inner frame"""
