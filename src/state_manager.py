@@ -28,6 +28,9 @@ class StateManager:
             if not self.current_note.strip():
                 print("Cannot start tracking without entering a note")
                 return False
+            # Set work_status to 'tracking' when starting to track
+            self.work_status = "tracking"
+            self.break_reason = None
 
         now = datetime.datetime.now()
         time_in_current_state = (now - self.last_state_change_time).total_seconds()

@@ -50,15 +50,23 @@ class WindowMonitor:
                 if self.current_window_title and \
                    self.current_window_title not in ["Unknown Window", "Error getting active window."] and \
                    self.data_logger_ref and self.state_manager_ref: # Ensure refs are valid
+                    # Get work status and break reason before logging
+                    work_status = self.state_manager_ref.get_work_status()
+                    break_reason = self.state_manager_ref.get_break_reason()
+                    
                     self.data_logger_ref.log_window_activity(
                         self.current_window_start_time,
                         now, # End time is current time
                         self.current_window_title,
                         self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
                         self.state_manager_ref.get_note(),
-                        self.state_manager_ref.get_work_status(),
-                        self.state_manager_ref.get_break_reason()
+                        work_status,
+                        break_reason
                     )
+                    
+                    # Reset work status and break reason if they were 'break' or 'finished'
+                    if work_status in ['break', 'finished']:
+                        self.state_manager_ref.set_work_status('tracking')
                 
                 # Now, set the new window as current.
                 # If active_title_from_os is "Unknown Window" or "Error getting active window.",
@@ -105,15 +113,23 @@ class WindowMonitor:
                     duration = (log_end_time - self.current_window_start_time).total_seconds()
                     
                     if duration > 0.1: # Minimum duration to log
+                        # Get work status and break reason before logging
+                        work_status = self.state_manager_ref.get_work_status()
+                        break_reason = self.state_manager_ref.get_break_reason()
+                        
                         self.data_logger_ref.log_window_activity(
                             self.current_window_start_time,
                             log_end_time,
                             self.current_window_title,
                             self.state_manager_ref.get_current_tag() or "No Tag", # Use the current tag
                             self.state_manager_ref.get_note(),
-                            self.state_manager_ref.get_work_status(),
-                            self.state_manager_ref.get_break_reason()
+                            work_status,
+                            break_reason
                         )
+                        
+                        # Reset work status and break reason if they were 'break' or 'finished'
+                        if work_status in ['break', 'finished']:
+                            self.state_manager_ref.set_work_status('tracking')
             
             self.current_window_title = None
             self.current_window_start_time = None
