@@ -13,8 +13,18 @@ class StateManager:
         self.tags = DEFAULT_TAGS.copy()
 
     def set_state(self, new_state, data_logger, window_monitor):
+        # If trying to set the same state, do nothing
         if self.current_state == new_state:
             return
+            
+        # If trying to change to tracking state, check if note and tag are set
+        if new_state == STATE_TRACKING:
+            if not self.current_tag:
+                print("Cannot start tracking without selecting a tag")
+                return False
+            if not self.current_note.strip():
+                print("Cannot start tracking without entering a note")
+                return False
 
         now = datetime.datetime.now()
         time_in_current_state = (now - self.last_state_change_time).total_seconds()
@@ -31,6 +41,8 @@ class StateManager:
         if self.current_state == STATE_TRACKING:
             window_monitor.start_monitoring(self, data_logger)
         # No specific action for Inactive here, handled by WindowMonitor's active state check
+        
+        return True
 
     def get_session_timers(self):
         now = datetime.datetime.now()

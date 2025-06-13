@@ -199,11 +199,31 @@ class SimpleGUI(tk.Tk):
 
     def _change_state(self, new_state):
         print(f"Button clicked: Change to {new_state}")
-        self.state_manager.set_state(new_state, self.data_logger, self.window_monitor)
-        self.current_state_var.set(self.state_manager.get_current_state())
-        self.status_var.set(f"State changed to {new_state}.")
-        self._update_button_styles()
-        self._update_background_color() # Added call
+        
+        # If trying to change to tracking state, check if note and tag are selected
+        if new_state == STATE_TRACKING:
+            current_tag = self.state_manager.get_current_tag()
+            current_note = self.state_manager.get_note().strip()
+            
+            if not current_tag:
+                messagebox.showwarning("Tag Required", "You must select a tag before starting tracking.")
+                self.status_var.set("Cannot start tracking: No tag selected.")
+                return
+                
+            if not current_note:
+                messagebox.showwarning("Note Required", "You must enter a note before starting tracking.")
+                self.status_var.set("Cannot start tracking: No note entered.")
+                return
+        
+        # Try to change the state
+        result = self.state_manager.set_state(new_state, self.data_logger, self.window_monitor)
+        
+        # Only update UI if state change was successful
+        if result is not False:  # None or True is success
+            self.current_state_var.set(self.state_manager.get_current_state())
+            self.status_var.set(f"State changed to {new_state}.")
+            self._update_button_styles()
+            self._update_background_color()
 
     def _update_button_styles(self):
         current_state = self.state_manager.get_current_state()
