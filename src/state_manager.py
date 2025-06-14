@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 from .constants import STATE_INACTIVE, STATE_TRACKING, DEFAULT_TAGS, TAG_PACING
 
 class StateManager:
@@ -9,8 +11,8 @@ class StateManager:
         self.last_state_change_time = datetime.datetime.now()
         self.current_note = ""
         self.current_tag = None
-        # Initialize with default tags
-        self.tags = DEFAULT_TAGS.copy()
+        # Initialize tags from JSON file or use defaults
+        self.tags = self._load_tags()
         # Work status and break reason
         self.work_status = None  # 'finished' or 'break'
         self.break_reason = None
@@ -75,6 +77,7 @@ class StateManager:
         if tag and tag not in self.tags:
             self.tags.append(tag)
             print(f"Added new tag: {tag}")
+            self._save_tags()
             return True
         return False
         
@@ -90,6 +93,7 @@ class StateManager:
             if self.current_tag == tag:
                 self.current_tag = None
             print(f"Removed tag: {tag}")
+            self._save_tags()
             return True
         return False
         
@@ -122,3 +126,40 @@ class StateManager:
     def get_break_reason(self):
         """Get the current break reason"""
         return self.break_reason
+        
+    def _load_tags(self):
+        """Load tags from JSON file or use defaults if file doesn't exist"""
+        tags_file_path = os.path.join(os.path.dirname(__file__), "schemas", "tags.json")
+        try:
+            if os.path.exists(tags_file_path):
+                with open(tags_file_path, 'r') as f:
+                    data = json.load(f)
+                    tags = data.get('tags', [])
+                    
+                    # Ensure Pacing tag is always included
+                    if TAG_PACING not in tags:
+                        tags.insert(0, TAG_PACING)
+                    
+                    print(f"Loaded {len(tags)} tags from {tags_file_path}")
+                    return tags
+        except Exception as e:
+            print(f"Error loading tags from {tags_file_path}: {e}")
+        
+        # If file doesn't exist or there was an error, use default tags
+        print(f"Using default tags")
+        return DEFAULT_TAGS.copy()
+    
+    def _save_tags(self):
+        """Save tags to JSON file"""
+        tags_file_path = os.path.join(os.path.dirname(__file__), "schemas", "tags.json")
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(tags_file_path), exist_ok=True)
+            
+            # Save tags to file
+            with open(tags_file_path, 'w') as f:
+                json.dump({'tags': self.tags}, f, indent=4)
+            
+            print(f"Saved {len(self.tags)} tags to {tags_file_path}")
+        except Exception as e:
+            print(f"Error saving tags to {tags_file_path}: {e}")
